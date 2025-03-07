@@ -1,0 +1,151 @@
+import pandas as pd
+import numpy as np
+import ast
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import difflib 
+m=pd.read_csv(r"C:\Users\Acer\OneDrive\Desktop\College\Projects\Movie Recommendation\tmdb_5000_movies.csv")
+c=pd.read_csv(r"C:\Users\Acer\OneDrive\Desktop\College\Projects\Movie Recommendation\tmdb_5000_credits.csv")
+
+movies=m.merge(c, on='title') #merge dataset on the basis of Title of the mvoies
+print(movies.shape)
+print(movies.head(1))
+
+print(movies.columns)
+movies=movies[['id','title','overview','keywords','genres','cast','crew']] #selected coloumns for recommendation
+print(movies.head(2))
+
+# print(movies.isnull().sum())
+movies.dropna(inplace=True) # drop the empty rows
+print(movies.isnull().sum())
+
+movies.duplicated().sum()
+
+movies['genres'].iloc[0]
+#desired format: [Action,Adventure,Science Fiction]
+
+def convert(obj):
+    L = []
+    for i in ast.literal_eval(obj):  # literal_eval converts string to list
+        L.append(i['name'])
+    return L
+
+
+movies['genres']=movies['genres'].apply(convert) #apply function is used to apply a function on a coloumn of a dataset
+
+movies.head(1)
+
+movies['keywords']=movies['keywords'].apply(convert)
+
+movies.head(1)
+
+def convert1(obj):
+    L = []
+    counter=0
+    for i in ast.literal_eval(obj): 
+        if counter!=3:          # as we only need the top 3 casts
+            L.append(i['name'])
+            counter+=1
+        else:
+            break
+    return L
+
+movies['cast']=movies['cast'].apply(convert1)
+
+movies.head(2)
+
+movies['crew'].iloc[0] # we only need the director of the movie
+def director(obj):
+    L = []
+    for i in ast.literal_eval(obj):
+        if i['job']=='Director': #as we only need the director from the crew coloumn
+            L.append(i['name'])
+            break
+    return L
+
+movies['crew']=movies['crew'].apply(director)
+
+movies.head()
+
+# As all other coloumns are in list, convert overview coloumn from string to list for easier processing
+
+movies['overview']=movies['overview'].apply(lambda x:x.split()) # lambda function takes x input and coverts it to list
+
+movies.head()
+
+# we will join the spaces between all the attributes except id and title for avoiding confusion on the basis of names
+movies['genres']=movies['genres'].apply(lambda x:[i.replace(" ","") for i in x])
+movies['overview']=movies['overview'].apply(lambda x:[i.replace(" ","") for i in x])
+movies['keywords']=movies['keywords'].apply(lambda x:[i.replace(" ","") for i in x])
+movies['cast']=movies['cast'].apply(lambda x:[i.replace(" ","") for i in x])
+movies['crew']=movies['crew'].apply(lambda x:[i.replace(" ","") for i in x])
+
+movies.head()
+
+# concatenate all 5 coloumns into a single coloumn "tags"
+movies['tags']=movies['genres']+movies['overview']+movies['keywords']+movies['cast']+movies['crew']
+movies.head()
+
+# As we have concatenated all the coloumns into tags we do not need them individually so, update dataset
+movies1=movies[['id','title','tags']]
+movies1.head()
+
+#Convert tags to string
+movies1['tags']=movies1['tags'].apply(lambda x: " ".join(x))
+movies1.head()
+
+movies1['tags'].iloc[0]
+
+#Covert tags coloumn into lower case as it is recommended
+movies1['tags']=movies1['tags'].apply(lambda x: x.lower())
+
+movies1.head(2)
+
+movies1['tags'].iloc[1]
+
+# convert the tags coloumn into an vector
+vectorizer=TfidfVectorizer()
+tag_vectors=vectorizer.fit_transform(movies1['tags']) #transforms into numerical value
+print(tag_vectors)
+
+# Deriving similarity between vectors(movies) by angle between them
+similarity=cosine_similarity(tag_vectors)
+
+similarity #similarity with movie itself will be 1
+
+#List of all the movies
+movie_list=movies['title'].tolist()
+
+print(movie_list)
+
+#take User input
+name=input("Enter the movie:")
+close_matches=difflib.get_close_matches(name,movie_list) #Similar movies on the basis of name
+print(close_matches)
+
+closest_match=close_matches[0]
+print(closest_match)
+
+# Find the id of the movie based on title
+movie_id=movies1[movies1['title']==closest_match]['id'].values[0]
+print(movie_id)
+
+#Getting list of similar movies
+similarity_score=list(enumerate(similarity[movie_id]))
+print(similarity_score)
+
+# Sorting movies based on similarity score
+sorted_values=sorted(similarity_score,key=lambda x:x[1],reverse=True)
+print(sorted_values)
+
+# Suggesting the top 10 similar movies
+print("Movies suggested:\n")
+
+# Find the title of the movie based on id
+i=1
+for movie in sorted_values:
+    m_id=movie[0]
+    title_from_id=movies1[movies1.id==m_id]['title'].values[0]
+    if(i<=10):
+        print(i, '.',title_from_id)
+        i+=1   
