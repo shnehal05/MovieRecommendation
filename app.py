@@ -1,15 +1,8 @@
-import os
 import streamlit as st
-
-# Install gdown dynamically if not installed (for Streamlit Cloud)
-try:
-    import gdown
-except ImportError:
-    os.system("pip install gdown")
-    import gdown
-
 import pickle
 import pandas as pd
+import os
+import gdown  # To download from Google Drive
 
 # Get the directory where app.py is located
 BASE_DIR = os.path.dirname(os.path.abspath(_file_))
