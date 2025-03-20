@@ -5,7 +5,7 @@ import os
 import gdown  # To download from Google Drive
 
 # Get the directory where app.py is located
-BASE_DIR = os.path.dirname(os.path.abspath(_file_))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Updated Google Drive file link and ID
 GOOGLE_DRIVE_FILE_ID = "1P8qbTjbD5sQtlbmcgBLtqkIdHxMGY1Ij"
